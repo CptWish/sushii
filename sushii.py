@@ -6,6 +6,7 @@ import sys
 import signal
 import os
 import time
+import requests
 
 #Parsers
 parser= argparse.ArgumentParser(description="Testing")
@@ -40,7 +41,7 @@ def print_banner():
 By CptWish
 ''')
 
-#install cmake
+#Prerequisites------------------------------------
 def run(cmd):
     print("Running:", " ".join(cmd))
     subprocess.run(cmd, check=True)
@@ -79,18 +80,10 @@ def install_cmake():
 
     else:
         sys.exit("Unsupported OS")
+#---------------------------------------------------
 
 
-# #Check LLM
-# def check_LLM():
-#     listOutput = str(subprocess.check_output(["ls", "-l"]))
-
-#     if not ("llama.cpp" in listOutput):
-#         build_LLM()
-#     else:
-#         print("llama.cpp already installed ✅")
-
-
+#Booting up LLM-------------------------------------
 READY = False
 def on_ok_signal(signum, frame):
     global READY
@@ -111,20 +104,35 @@ def build_LLM():
     sys.stdout.flush()
     print("[->]LLM is hosted on http://127.0.0.1:8080")
     #subprocess.run(["./llamaHelper.sh"])
+#---------------------------------------------------
+
+#Helpers--------------------------------------------
+def initialize():
+    print_banner()
+    install_cmake()
+    build_LLM()
 
 
+#---------------------------------------------------
 
 def main():
-    #print banner
-    print_banner()
+    initialize()
 
-    #check utils
-    #Check cmake
-    install_cmake()
+    BASE="http://127.0.0.1:8080"
 
-    #boot up llama
-    #check_LLM()
-    build_LLM()
+    payload = {
+        "model": "local-model",
+        "messages": [
+            {"role":"system", "content":"You are a concise assistant."},
+            {"role":"user", "content":"Say hello like you are obi wan kenobi"},
+        ],
+        "temperature":0.2
+    }
+
+    r = requests.post(f"{BASE}/v1/chat/completions", json=payload, timeout=120)
+    r.raise_for_status()
+    data= r.json()
+    print(data["choices"][0]["message"]["content"])
 
 if __name__ == "__main__":
     main()
