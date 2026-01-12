@@ -103,7 +103,6 @@ def build_LLM():
     sys.stdout.write("\r[✅]Configuring LLM\n")
     sys.stdout.flush()
     print("[->]LLM is hosted on http://127.0.0.1:8080")
-    #subprocess.run(["./llamaHelper.sh"])
 #---------------------------------------------------
 
 #Helpers--------------------------------------------

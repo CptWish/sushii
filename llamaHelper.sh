@@ -26,7 +26,7 @@ BUILD_STAMP="$BUILD_DIR/.built_head"
 log(){ echo "[+] $1"; }
 warn(){ echo "[!] $1" >&2; }
 need_cmd(){ command -v "$1" >/dev/null 2>&1; }
-is_file_ok(){ [ -f "$1" ] && [ -s "$1" ]; }  # exists and non-empty
+is_file_ok(){ [ -f "$1" ] && [ -s "$1" ]; }  
 
 install_if_missing(){
   local pkgs=()
@@ -34,7 +34,7 @@ install_if_missing(){
   need_cmd git || pkgs+=("git")
   need_cmd g++ || pkgs+=("build-essential")
   need_cmd wget || pkgs+=("wget")
-  need_cmd curl || pkgs+=("curl")   # <-- needed for readiness + existing server check
+  need_cmd curl || pkgs+=("curl")   
 
   if [ "${#pkgs[@]}" -gt 0 ]; then
     log "Installing missing packages: ${pkgs[*]}"
@@ -114,8 +114,7 @@ log "URL: http://$HOST:$PORT"
 
 mkdir -p "$WORKDIR"
 
-# ---------- RECOMMENDATION IMPLEMENTED HERE ----------
-# 1) If server is already responding on the port, do NOT start another process.
+
 if curl -sf "http://$HOST:$PORT/v1/models" >/dev/null; then
   log "llama-server already running on $HOST:$PORT (not starting a new process)"
   SERVER_PID=""
@@ -133,7 +132,7 @@ else
   log "llama-server started with PID: $SERVER_PID"
 fi
 
-# 2) Wait until it is actually ready (prevents 503/warmup races)
+
 log "Waiting for llama-server readiness..."
 READY_TIMEOUT=120
 start_ts=$(date +%s)
@@ -151,16 +150,16 @@ done
 
 log "llama-server is ready"
 
-# 3) Notify Python ONLY after readiness
+
 if [ -n "$PYTHON_PID" ]; then
   kill -SIGUSR1 "$PYTHON_PID"
   log "Sent SIGUSR1 to Python PID: $PYTHON_PID"
 fi
 
-# 4) If we started it, optionally keep this helper alive; if it already existed, exit.
+
 if [ -n "${SERVER_PID:-}" ]; then
   wait "$SERVER_PID"
 else
   exit 0
 fi
-# ---------- END RECOMMENDATION ----------
+
