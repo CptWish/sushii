@@ -3,6 +3,9 @@ import subprocess
 import shutil
 import platform
 import sys
+import signal
+import os
+import time
 
 #Parsers
 parser= argparse.ArgumentParser(description="Testing")
@@ -78,23 +81,36 @@ def install_cmake():
         sys.exit("Unsupported OS")
 
 
-#Check LLM
-def check_LLM():
-    listOutput = str(subprocess.check_output(["ls", "-l"]))
+# #Check LLM
+# def check_LLM():
+#     listOutput = str(subprocess.check_output(["ls", "-l"]))
 
-    if not ("llama.cpp" in listOutput):
-        subprocess.run(["git", "clone", "https://github.com/ggml-org/llama.cpp"])
-        subprocess.run(["cd", "llama.cpp"])
-        #Check if cmake is installed
-        if shutil.which("cmake") is None:
-            print("Cmake not installed")
-    else:
-        print("llama.cpp already installed ✅")
+#     if not ("llama.cpp" in listOutput):
+#         build_LLM()
+#     else:
+#         print("llama.cpp already installed ✅")
+
+
+READY = False
+def on_ok_signal(signum, frame):
+    global READY
+    READY = True
 
 #Configure LLM
 def build_LLM():
+    signal.signal(signal.SIGUSR1, on_ok_signal)
     subprocess.run(["chmod", "+x", "llamaHelper.sh"])
-    subprocess.run(["./llamaHelper.sh"])
+    subprocess.Popen(["./llamaHelper.sh", str(os.getpid())], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    while not READY:
+        for dots in [" ", ".", "..", "..."]:
+            sys.stdout.write(f"\r[*]Configuring LLM{dots}")
+            sys.stdout.flush()
+            time.sleep(0.5)
+
+    sys.stdout.write("\r[✅]Configuring LLM\n")
+    sys.stdout.flush()
+    print("[->]LLM is hosted on http://127.0.0.1:8080")
+    #subprocess.run(["./llamaHelper.sh"])
 
 
 
@@ -107,7 +123,7 @@ def main():
     install_cmake()
 
     #boot up llama
-    check_LLM()
+    #check_LLM()
     build_LLM()
 
 if __name__ == "__main__":

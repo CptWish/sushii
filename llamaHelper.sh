@@ -4,6 +4,7 @@ set -euo pipefail
 ############################################
 # CONFIG
 ############################################
+PYTHON_PID="${1:-}"
 WORKDIR="$HOME/llama_local"
 LLAMA_CPP_DIR="$WORKDIR/llama.cpp"
 BUILD_DIR="$LLAMA_CPP_DIR/build"
@@ -87,7 +88,7 @@ build_llama_if_needed(){
   fi
 
   log "Configuring build..."
-  (cd "$LLAMA_CPP_DIR" && cmake -B build)
+  (cd "$LLAMA_CPP_DIR" && cmake -B build -DLLAMA_CURL=OFF)
 
   log "Building..."
   (cd "$LLAMA_CPP_DIR" && cmake --build build -j)
@@ -110,7 +111,22 @@ log "Starting llama-server (local only)"
 log "Model: $MODEL_PATH"
 log "URL: http://$HOST:$PORT"
 
+
 exec "$LLAMA_SERVER_BIN" \
+  -c 2048 \
   -m "$MODEL_PATH" \
   --host "$HOST" \
-  --port "$PORT"
+  --port "$PORT" \
+  >"$WORKDIR/llama-server.out" 2>"$WORKDIR/llama-server.err" &  
+SERVER_PID=$!
+
+# until curl -s http://127.0.0.1:8080/v1/models >/dev/null do
+#   sleep 1
+# done
+
+if [ -n "$PYTHON_PID" ]; then
+  kill -SIGUSR1 "$PYTHON_PID"
+fi
+
+
+wait "$SERVER_PID"
